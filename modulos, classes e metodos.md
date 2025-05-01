@@ -74,5 +74,3 @@ meu_carro.ligar()  # Saída: O Fusca está ligado!
 Um **objeto** (ou **instância**) de classe é tudo aquilo que é criado a partir dos **moldes** da classe.  
 
 Uma instância **possui atributos** da classe e pode **executar os métodos** dela.
-
-```python
