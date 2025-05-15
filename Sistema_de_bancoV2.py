@@ -1,3 +1,5 @@
+from datetime import datetime, date
+
 def registro_user(credencial): #DEF RESPONSAVEL POR CADASTRAR NOVOS USUARIOS.
     novo_user = {} #nossos usuarios são registrados em chave-valor. Essa var irá alimentar o nosso registro de usuarios em chave-valor.
     novo_user['nome'] = str(input('Digite seu nome').capitalize()) 
@@ -7,7 +9,6 @@ def registro_user(credencial): #DEF RESPONSAVEL POR CADASTRAR NOVOS USUARIOS.
             break
         except ValueError:
             print('Apenas números, por favor.')
-    #cpf = input('Digite seu cpf =>\n').replace('-','').replace('-','').replace(' ','')
     novo_user['cpf'] = str(credencial)# Aqui eu resgato o CPF que já foi informado e verificado.
     print('Agora seu endereço =>\n')
     novo_user['endereco'] = registro_endereco() #Aqui alimentaremos a chave:valor endereço através da função registro_endereco. 
@@ -40,7 +41,7 @@ def registro_endereco(): #Com essa def vamos tratar os dados do endereço
     print(address)
     return address
 
-def abrir_conta():  #contabilidade += len(account['contas']) # Atualizar a quantidade de contas existentes.
+def abrir_conta(): 
     conta_nova =[]
     ag = '0001'
     print('Sua agência será 0001')
@@ -52,9 +53,15 @@ def abrir_conta():  #contabilidade += len(account['contas']) # Atualizar a quant
     conta_nova.append(ag) #AGENCIA
     conta_nova.append(conta_id) #numero da conta
     conta_nova.append(conta_usuario) # USUARIO
+    saldo = 0
+    extrato = ['operação', 'valor', 'data', saldo]
+    conta_nova.append(extrato)
+    conta_nova.append(saldo)
     return conta_nova    
         
 def user_loggin(credencial_encontrada): #(Aqui verificamos dados com o cpf escolhido. Os dados verificados são da var user.)
+    if credencial_encontrada == None:
+        return
     print(credencial_encontrada['cpf']) #Testar o retorno da variavel na def
     print(f'''
 {user} Var user.
@@ -64,7 +71,8 @@ def user_loggin(credencial_encontrada): #(Aqui verificamos dados com o cpf escol
         opcoes = int(input(''' 
     1 - Listar contas    
     2 - Abrir conta
-    3 - Sair
+    3 - Operações bancárias
+    4 - Sair
     => '''))     # Ação que tomaremos uma vez que conseguimos autenticar os dados
         if opcoes == 1: #LISTAR CONTAS
             for i, items in enumerate(credencial_encontrada['contas']): #iterar valor de índice e valores da chave:valor 'conta'.
@@ -74,27 +82,110 @@ def user_loggin(credencial_encontrada): #(Aqui verificamos dados com o cpf escol
                 else:
                     print('Não existem contas')
         elif opcoes == 2: # CRIAR CONTA
+                #PRECISO DEFINIR A SELEÇÃO DE CONTA PARA EFETUAR DEPÓSITO.
                 credencial_encontrada['contas'].append(abrir_conta())
                 print('Conta criada com sucesso')
-        elif opcoes == 3: #SAIR
+        elif opcoes == 3:#Operações bancárias
+            credencial_encontrada['contas'].append(menu(credencial_encontrada))
+        elif opcoes == 4: #SAIR
             break
         else:
             print('opção não encontrada. Digite o numero referente a opção desejada.')
+
+def autentica(credencial): #Decidi separar em uma função a parte do código que trata o loggin, para futuras reutilizações.
+    credencial_encontrada = next((usuario for usuario in user if usuario['cpf'] == credencial), None) #next busca o primeiro resultado, o for percorre toda a variável. 
+    if credencial_encontrada is not None: 
+        print(credencial_encontrada)
+        return credencial_encontrada
+    else:
+        return print('CPF não encontrado.')
+
+
+extrato = ['operação', 'valor', 'data', 'saldo']
+def menu(credencial_encontrada): #Aqui iremos trabalhar apenas com os valores da lista de cada conta.
+    while True:
+        selecionar_conta = input('Digite o usuário')
+        conta_logada = next((select_conta for select_conta in credencial_encontrada['contas'] if selecionar_conta == select_conta[2]), None) #Aqui vamos iterar sobre a lista contas e trabalhar com o valor específico de cada conta.
+        if conta_logada:
+            break
+        else:
+            print('Conta inexistente!')
+            continue
+    print('''
+      MENU:
+      1 - Saque
+      2 - Depósito
+      3 - Extrato''')
+    while True:            
+        entrada = input('=>') 
+        if entrada.isdigit():
+            op_menu = int(entrada)
+            break
+        else:
+            print('Opção inválida')
+            continue
+    if op_menu ==1:
+        saque()
+    elif op_menu ==2:
+        try:
+            entrada = int(input('Digite o valor para depósito').strip())
+            valor_deposito = entrada
+            depositar = deposito(valor_deposito, credencial_encontrada)
+            conta_logada.append(depositar)
+            conta_logada[4] += entrada
+            print(f'''
+                  +R${entrada} depositado com sucesso na conta ag {conta_logada[0]}, conta {conta_logada[1]}''')
+        except ValueError:
+             print(valor_deposito)
+             print(type(valor_deposito))
+             print('Somente números, por favor!')
+    elif op_menu ==3:
+        saldo = conta_logada[4]
+        conta_logada[3].append(demonstrativo(saldo, extrato=conta_logada))
+    else:
+        print('Opção inexistente')
+
+    return conta_logada
+
+
+def demonstrativo(saldo, /, extrato):
+    for i, demonstrativo in extrato:
+        #"Operação de +R$:{VALOR}. Dia {Data e hora}"
+        print(f'\n{demonstrativo[0]}{demonstrativo[1]:.2f}. Dia {demonstrativo[2]}')
+    print(f'Saldo final: {saldo}')    
+    print(f'Um total de {i} operações')
+
+def deposito(deposito, extrato):
+    if deposito <= 0:
+        return print('Operação impossível')
+    else:
+        agora = datetime.now()
+        att_extrato =[]
+        att_extrato.append('Depósito de +R$:')
+        att_extrato.append(int(deposito))
+        att_extrato.append(agora.strftime("%d/%m/%Y às %H:%M"))
+        return  extrato
+
+
+#def deposito(saldo, valor, extrato):
+
+
+#def extrato(saldo,/,extrato):
+
 
 conta = []
 user = [{'nome': 'nome', 'Nascimento': 'data', 'cpf': 'cpf', 'endereco': 'endereço', 'contas':conta,}] #Nosso registro de usuários alimentado pela def registro_user
 contabilidade = len(conta) #Atualizador das contas
 while True:
-    escolha = int(input('Escolha 1 para logar e 2 para se registrar'))
+    escolha = int(input('''
+                        1 - Logar
+                        2 - Registrar-se
+                        '''))
     if escolha == 1:
         try:
             credencial = input('Insira seu cpf').replace('-', '').replace('.','')#strip só remove do inicio ou fim. Replace é a melhor opção.
-            credencial_encontrada = next((usuario for usuario in user if usuario['cpf'] == credencial), None) #next busca o primeiro resultado, o for percorre toda a variável. 
-            if credencial_encontrada is not None: 
-                print(credencial_encontrada)
-                user_loggin(credencial_encontrada) #Chamamos o usuário logado
-            else:
-                print('CPF não encontrado.')
+            credencial_encontrada = autentica(credencial)
+            user_loggin(credencial_encontrada)
         except ValueError:
             print('Somente números, por favor.')
     elif escolha == 2: #REGISTRAR. Primeiro verifico o CPF e se não existir eu permito o registro.
@@ -114,22 +205,11 @@ while True:
         print(user)
     else:
         print('Opção inválida')
+        continue
 
 
     
-menu = """
-
-[d] Depositar
-[s] Sacar
-[e] Extrato
-[q] Sair
-
-=> """
-
-
-conta = [{id:('ag','conta', 'usuario')}] #tuplas pois são dados, não queremos que sejam mutáveis.
-
-#Dividir todas as funções do sistema em defs. O retorno e o nome das variáveis é de meu critério
+#Dividir todas as funções do sistema em defs. O retorno e o nome das variáveis é de meu critério FEITO
 
 #SAQUE DEVERÁ SER KEYWORD ONLY . saldo(valor = valor, saldo = saldo)
 #Sugestão de argumento é checar saldo e ver valor.
@@ -160,63 +240,3 @@ conta = [{id:('ag','conta', 'usuario')}] #tuplas pois são dados, não queremos 
 #Uma conta só pode pertencer a um usuário
 #Se não houver um usuário deve ser impossível criar a conta.
 #Se houver um usuário com o cpf informado, vincule.
-
-#Usemos chave-valor dentro da lista.
-
-saldo = 0
-limite = 500
-extrato = ""
-numero_saques = 0
-LIMITE_SAQUES = 3
-
-while True:
-
-    opcao = input(menu)
-
-    if opcao == "d":
-        valor = float(input("Informe o valor do depósito: "))
-
-        if valor > 0:
-            saldo += valor
-            extrato += f"Depósito: R$ {valor:.2f}\n"
-
-        else:
-            print("Operação falhou! O valor informado é inválido.")
-
-    elif opcao == "s":
-        valor = float(input("Informe o valor do saque: "))
-
-        excedeu_saldo = valor > saldo
-
-        excedeu_limite = valor > limite
-
-        excedeu_saques = numero_saques >= LIMITE_SAQUES
-
-        if excedeu_saldo:
-            print("Operação falhou! Você não tem saldo suficiente.")
-
-        elif excedeu_limite:
-            print("Operação falhou! O valor do saque excede o limite.")
-
-        elif excedeu_saques:
-            print("Operação falhou! Número máximo de saques excedido.")
-
-        elif valor > 0:
-            saldo -= valor
-            extrato += f"Saque: R$ {valor:.2f}\n"
-            numero_saques += 1
-
-        else:
-            print("Operação falhou! O valor informado é inválido.")
-
-    elif opcao == "e":
-        print("\n================ EXTRATO ================")
-        print("Não foram realizadas movimentações." if not extrato else extrato)
-        print(f"\nSaldo: R$ {saldo:.2f}")
-        print("==========================================")
-
-    elif opcao == "q":
-        break
-
-    else:
-        print("Operação inválida, por favor selecione novamente a operação desejada.")
