@@ -56,6 +56,7 @@ def abrir_conta():
     extrato = []
     conta_nova.append(extrato)
     return conta_nova    
+         
         
 def user_loggin(credencial_encontrada): #(Aqui verificamos dados com o cpf escolhido. Os dados verificados são da var user.)
     if credencial_encontrada == None:
@@ -75,19 +76,20 @@ def user_loggin(credencial_encontrada): #(Aqui verificamos dados com o cpf escol
         if opcoes == 1: #LISTAR CONTAS
             if credencial_encontrada['contas']:
                 for i, items in enumerate(credencial_encontrada['contas']): #iterar valor de índice e valores da chave:valor 'conta'.
-                    i += 1
                     #if items: #Se houver alguma coisa
                     try: 
-                        if items[3][-1]:
-                            print(f'\n{i} - Agência: {items[0]} Conta: {items[1]}. Usuário: {items[2]}') 
-                    #if next((saldo for saldo in items[3][-1] if len(items[3][-1])>0), None):
-                     #   valor = saldo
-                        print(f'Saldo total de: R$ {saldo:.2f}')
+                        if items[3]:
+                            print(f'\n{i+1} - Agência: {items[0]} Conta: {items[1]}. Usuário: {items[2]}')
+                            saldo_conta = float(items[3][-1][3]) #ITEMS 3 SÃO AS TUPLAS. [-1] E A ÚLTIMA TUPLA. 
+                            print(f'Saldo total de: R$ {saldo_conta:.2f}')
+                        else:
+                            print(f'\n{i+1} - Agência: {items[0]} Conta: {items[1]}. Usuário: {items[2]}')
+                            print('Conta zerada.')     
                     except IndexError:
-                            print(f'\n{i} - Agência: {items[0]} Conta: {items[1]}. Usuário: {items[2]}')
-                            print('Conta zerada.') 
+                        print(f'\n{i+1} - Agência: {items[0]} Conta: {items[1]}. Usuário: {items[2]}')
+                        print('Conta zerada.')            
             else:
-                    print('Não existem contas')
+                print('Não existem contas')
         elif opcoes == 2: # CRIAR CONTA
                 credencial_encontrada['contas'].append(abrir_conta())
                 print(credencial_encontrada['contas'][-1])
@@ -96,6 +98,7 @@ def user_loggin(credencial_encontrada): #(Aqui verificamos dados com o cpf escol
             indice, operacao, saldo = menu(credencial_encontrada) #Retornei como tupla duas informações. Um índice para eu poder manipular a conta 
             credencial_encontrada['contas'][indice].append(operacao) #Aqui eu resolvo a duplicata de listas de conta a cada operação de depósito. Pois eu aplico a operação dentro da conta.
             credencial_encontrada['contas'][indice]
+                
         elif opcoes == 4: #SAIR
             break
         else:
@@ -141,8 +144,7 @@ def menu(credencial_encontrada): #Aqui iremos trabalhar apenas com os valores da
         try:
             entrada = int(input('Digite o valor para depósito'))
             valor_deposito = entrada
-            valor_atualizado, depositar = deposito(valor_deposito, conta_logada[3]) 
-            conta_logada[3].append(depositar)
+            valor_atualizado, _  = deposito(valor_deposito, conta_logada[3]) #Já atualizamos dentro da def depósito
             print(f'''
                   +R${entrada} depositado com sucesso na conta ag {conta_logada[0]}, conta {conta_logada[1]}''')
         except ValueError:
@@ -150,17 +152,17 @@ def menu(credencial_encontrada): #Aqui iremos trabalhar apenas com os valores da
     elif op_menu =='E':
         print("Opção escolhida:", op_menu)  # Verifica o valor de entrada
         print("Lista extrato:", conta_logada[3])
-        print('Extrato da conta', conta_logada[3][-1])
-        print('Extrato da conta', conta_logada[3][-1])  # Exibe o extrato antes de acessar
-        if conta_logada[3] and len(conta_logada[3][-1])>0:  
-            valor_atualizado = conta_logada[3][-1][-1] #lembrei de acessar o ultimo valor de tupla (e inverte ordem também, portanto começa pelo último valor na tupla) 
-            msg = demonstrativo(valor_atualizado, extrato=conta_logada[3])
-            print(msg)
-        else:
+        try:
+            if conta_logada[3][-1][3]:
+                valor_atualizado= conta_logada[3][-1][3] 
+                msg = demonstrativo(valor_atualizado, extrato=conta_logada[3])
+                print(msg)
+        except IndexError:
             valor_atualizado=0
             operacao_realizada = conta_logada
-            print('Não há extrato para exibir')
-            return indice, operacao_realizada, valor_atualizado 
+            print('Não há extrato')
+            return indice, operacao_realizada, valor_atualizado
+            #return indice, operacao_realizada, valor_atualizado
     elif op_menu =='M':
         if conta_logada[3][-1]:
             valor_atualizado = conta_logada[3][-1]
@@ -177,11 +179,11 @@ def menu(credencial_encontrada): #Aqui iremos trabalhar apenas com os valores da
 def demonstrativo(saldo, /, extrato):
     i = 0
     msg = ""
-    for op, valor, data, _ in extrato: #iterando sob as tuplas dentro de extrato
+    for op, valor, data in extrato: #iterando sob as tuplas dentro de extrato
         #"Operação de +R$:{VALOR}. Dia {Data e hora}"
         msg += f'\n{op}{valor:.2f}. Dia {data}'   #CORRIGIR RETORNO APARECENDO LISTA TODA.
         i += 1
-    msg += f'\nSaldo final: {saldo}\n Um total de {i} operações'    
+    msg = f'\nSaldo final: {saldo}\n Um total de {i} operações'    
     return msg
 
 def deposito(deposito, extrato):
@@ -191,10 +193,9 @@ def deposito(deposito, extrato):
     else:
         agora = datetime.now()
         agora = agora.strftime("%d/%m/%Y às %H:%M")
-        try:
-            if extrato[0][-1]:
-                valor = extrato[0][-1]
-        except IndexError:
+        if extrato: #Lembrar que aqui extrato é extrato=conta_logada[3] ou seja, a lista de tuplas que contém as operações.
+            valor = extrato[-1][3]
+        else:
             valor = 0       
         saldo = valor+deposito
         operacao = 'Depósito de: +R$ '
