@@ -53,10 +53,8 @@ def abrir_conta():
     conta_nova.append(ag) #AGENCIA
     conta_nova.append(conta_id) #numero da conta
     conta_nova.append(conta_usuario) # USUARIO
-    saldo = 0
-    extrato = ['operação', 'valor', 'data', saldo]
+    extrato = []
     conta_nova.append(extrato)
-    conta_nova.append(saldo)
     return conta_nova    
         
 def user_loggin(credencial_encontrada): #(Aqui verificamos dados com o cpf escolhido. Os dados verificados são da var user.)
@@ -75,18 +73,29 @@ def user_loggin(credencial_encontrada): #(Aqui verificamos dados com o cpf escol
     4 - Sair
     => '''))     # Ação que tomaremos uma vez que conseguimos autenticar os dados
         if opcoes == 1: #LISTAR CONTAS
-            for i, items in enumerate(credencial_encontrada['contas']): #iterar valor de índice e valores da chave:valor 'conta'.
-                i += 1
-                if items: #Se houver alguma coisa 
-                    print(f'\n{i} - Agência: {items[0]} Conta: {items[1]}. Usuário: {items[2]}') #Mostra
-                else:
+            if credencial_encontrada['contas']:
+                for i, items in enumerate(credencial_encontrada['contas']): #iterar valor de índice e valores da chave:valor 'conta'.
+                    i += 1
+                    #if items: #Se houver alguma coisa
+                    try: 
+                        if items[3][-1]:
+                            print(f'\n{i} - Agência: {items[0]} Conta: {items[1]}. Usuário: {items[2]}') 
+                    #if next((saldo for saldo in items[3][-1] if len(items[3][-1])>0), None):
+                     #   valor = saldo
+                        print(f'Saldo total de: R$ {saldo:.2f}')
+                    except IndexError:
+                            print(f'\n{i} - Agência: {items[0]} Conta: {items[1]}. Usuário: {items[2]}')
+                            print('Conta zerada.') 
+            else:
                     print('Não existem contas')
         elif opcoes == 2: # CRIAR CONTA
-                #PRECISO DEFINIR A SELEÇÃO DE CONTA PARA EFETUAR DEPÓSITO.
                 credencial_encontrada['contas'].append(abrir_conta())
+                print(credencial_encontrada['contas'][-1])
                 print('Conta criada com sucesso')
         elif opcoes == 3:#Operações bancárias
-            credencial_encontrada['contas'].append(menu(credencial_encontrada))
+            indice, operacao, saldo = menu(credencial_encontrada) #Retornei como tupla duas informações. Um índice para eu poder manipular a conta 
+            credencial_encontrada['contas'][indice].append(operacao) #Aqui eu resolvo a duplicata de listas de conta a cada operação de depósito. Pois eu aplico a operação dentro da conta.
+            credencial_encontrada['contas'][indice]
         elif opcoes == 4: #SAIR
             break
         else:
@@ -101,70 +110,97 @@ def autentica(credencial): #Decidi separar em uma função a parte do código qu
         return print('CPF não encontrado.')
 
 
-extrato = ['operação', 'valor', 'data', 'saldo']
+extrato = []
 def menu(credencial_encontrada): #Aqui iremos trabalhar apenas com os valores da lista de cada conta.
     while True:
         selecionar_conta = input('Digite o usuário')
-        conta_logada = next((select_conta for select_conta in credencial_encontrada['contas'] if selecionar_conta == select_conta[2]), None) #Aqui vamos iterar sobre a lista contas e trabalhar com o valor específico de cada conta.
+        indice, conta_logada = next(((indice, select_conta) for indice, select_conta in enumerate(credencial_encontrada['contas']) if selecionar_conta == select_conta[2]),(None, None)) #Aqui vamos iterar sobre a lista contas e trabalhar com o valor específico de cada conta.
         if conta_logada:
+            #print(saldo)
+            #print(type(saldo))
             break
         else:
             print('Conta inexistente!')
-            continue
     print('''
       MENU:
       1 - Saque
       2 - Depósito
-      3 - Extrato''')
+      E - Extrato
+      M - Ver Saldo''')
     while True:            
         entrada = input('=>') 
         if entrada.isdigit():
             op_menu = int(entrada)
             break
         else:
-            print('Opção inválida')
-            continue
-    if op_menu ==1:
-        saque()
-    elif op_menu ==2:
+            op_menu = str(entrada.upper())
+            break
+    #if op_menu ==1:
+     #   return
+    if op_menu ==2:
         try:
-            entrada = int(input('Digite o valor para depósito').strip())
+            entrada = int(input('Digite o valor para depósito'))
             valor_deposito = entrada
-            depositar = deposito(valor_deposito, credencial_encontrada)
-            conta_logada.append(depositar)
-            conta_logada[4] += entrada
+            valor_atualizado, depositar = deposito(valor_deposito, conta_logada[3]) 
+            conta_logada[3].append(depositar)
             print(f'''
                   +R${entrada} depositado com sucesso na conta ag {conta_logada[0]}, conta {conta_logada[1]}''')
         except ValueError:
-             print(valor_deposito)
-             print(type(valor_deposito))
              print('Somente números, por favor!')
-    elif op_menu ==3:
-        saldo = conta_logada[4]
-        conta_logada[3].append(demonstrativo(saldo, extrato=conta_logada))
+    elif op_menu =='E':
+        print("Opção escolhida:", op_menu)  # Verifica o valor de entrada
+        print("Lista extrato:", conta_logada[3])
+        print('Extrato da conta', conta_logada[3][-1])
+        print('Extrato da conta', conta_logada[3][-1])  # Exibe o extrato antes de acessar
+        if conta_logada[3] and len(conta_logada[3][-1])>0:  
+            valor_atualizado = conta_logada[3][-1][-1] #lembrei de acessar o ultimo valor de tupla (e inverte ordem também, portanto começa pelo último valor na tupla) 
+            msg = demonstrativo(valor_atualizado, extrato=conta_logada[3])
+            print(msg)
+        else:
+            valor_atualizado=0
+            operacao_realizada = conta_logada
+            print('Não há extrato para exibir')
+            return indice, operacao_realizada, valor_atualizado 
+    elif op_menu =='M':
+        if conta_logada[3][-1]:
+            valor_atualizado = conta_logada[3][-1]
+            print(f'Você possui: R$ {valor_atualizado:.2f}')
+        else:
+            valor_atualizado = 0
+            print(f'Não há dinheiro na conta.')
     else:
         print('Opção inexistente')
-
-    return conta_logada
+    operacao_realizada = conta_logada
+    return indice, operacao_realizada, valor_atualizado
 
 
 def demonstrativo(saldo, /, extrato):
-    for i, demonstrativo in extrato:
+    i = 0
+    msg = ""
+    for op, valor, data, _ in extrato: #iterando sob as tuplas dentro de extrato
         #"Operação de +R$:{VALOR}. Dia {Data e hora}"
-        print(f'\n{demonstrativo[0]}{demonstrativo[1]:.2f}. Dia {demonstrativo[2]}')
-    print(f'Saldo final: {saldo}')    
-    print(f'Um total de {i} operações')
+        msg += f'\n{op}{valor:.2f}. Dia {data}'   #CORRIGIR RETORNO APARECENDO LISTA TODA.
+        i += 1
+    msg += f'\nSaldo final: {saldo}\n Um total de {i} operações'    
+    return msg
 
 def deposito(deposito, extrato):
     if deposito <= 0:
-        return print('Operação impossível')
+        print('Operação impossível')
+        return None 
     else:
         agora = datetime.now()
-        att_extrato =[]
-        att_extrato.append('Depósito de +R$:')
-        att_extrato.append(int(deposito))
-        att_extrato.append(agora.strftime("%d/%m/%Y às %H:%M"))
-        return  extrato
+        agora = agora.strftime("%d/%m/%Y às %H:%M")
+        try:
+            if extrato[0][-1]:
+                valor = extrato[0][-1]
+        except IndexError:
+            valor = 0       
+        saldo = valor+deposito
+        operacao = 'Depósito de: +R$ '
+        att_extrato = (operacao, deposito, agora, saldo) #enviaremos extrato como tupla para a lista de contas
+        extrato.append(att_extrato)
+        return saldo, extrato
 
 
 #def deposito(saldo, valor, extrato):
