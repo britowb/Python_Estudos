@@ -77,17 +77,13 @@ def user_loggin(credencial_encontrada): #(Aqui verificamos dados com o cpf escol
             if credencial_encontrada['contas']:
                 for i, items in enumerate(credencial_encontrada['contas']): #iterar valor de índice e valores da chave:valor 'conta'.
                     #if items: #Se houver alguma coisa
-                    try: 
-                        if items[3]:
-                            print(f'\n{i+1} - Agência: {items[0]} Conta: {items[1]}. Usuário: {items[2]}')
-                            saldo_conta = float(items[3][-1][3]) #ITEMS 3 SÃO AS TUPLAS. [-1] E A ÚLTIMA TUPLA. 
-                            print(f'Saldo total de: R$ {saldo_conta:.2f}')
-                        else:
-                            print(f'\n{i+1} - Agência: {items[0]} Conta: {items[1]}. Usuário: {items[2]}')
-                            print('Conta zerada.')     
-                    except IndexError:
+                    if items[3]:
                         print(f'\n{i+1} - Agência: {items[0]} Conta: {items[1]}. Usuário: {items[2]}')
-                        print('Conta zerada.')            
+                        saldo_conta = float(items[3][-1][3]) #ITEMS 3 SÃO AS TUPLAS. [-1] E A ÚLTIMA TUPLA. 
+                        print(f'Saldo total de: R$ {saldo_conta:.2f}')
+                    else:
+                        print(f'\n{i+1} - Agência: {items[0]} Conta: {items[1]}. Usuário: {items[2]}')
+                        print('Conta zerada.')           
             else:
                 print('Não existem contas')
         elif opcoes == 2: # CRIAR CONTA
@@ -95,32 +91,26 @@ def user_loggin(credencial_encontrada): #(Aqui verificamos dados com o cpf escol
                 print(credencial_encontrada['contas'][-1])
                 print('Conta criada com sucesso')
         elif opcoes == 3:#Operações bancárias
-            indice, operacao, saldo = menu(credencial_encontrada) #Retornei como tupla duas informações. Um índice para eu poder manipular a conta 
-            credencial_encontrada['contas'][indice].append(operacao) #Aqui eu resolvo a duplicata de listas de conta a cada operação de depósito. Pois eu aplico a operação dentro da conta.
-            credencial_encontrada['contas'][indice]
-                
+            menu(credencial_encontrada)
+    
         elif opcoes == 4: #SAIR
             break
         else:
             print('opção não encontrada. Digite o numero referente a opção desejada.')
 
-def autentica(credencial): #Decidi separar em uma função a parte do código que trata o loggin, para futuras reutilizações.
-    credencial_encontrada = next((usuario for usuario in user if usuario['cpf'] == credencial), None) #next busca o primeiro resultado, o for percorre toda a variável. 
+def autentica(credencial): #Parte do código que trata o loggin.
+    credencial_encontrada = next((usuario for usuario in user if usuario['cpf'] == credencial), None) 
     if credencial_encontrada is not None: 
         print(credencial_encontrada)
         return credencial_encontrada
     else:
         return print('CPF não encontrado.')
 
-
-extrato = []
-def menu(credencial_encontrada): #Aqui iremos trabalhar apenas com os valores da lista de cada conta.
+def menu(credencial_encontrada): 
     while True:
         selecionar_conta = input('Digite o usuário')
         indice, conta_logada = next(((indice, select_conta) for indice, select_conta in enumerate(credencial_encontrada['contas']) if selecionar_conta == select_conta[2]),(None, None)) #Aqui vamos iterar sobre a lista contas e trabalhar com o valor específico de cada conta.
         if conta_logada:
-            #print(saldo)
-            #print(type(saldo))
             break
         else:
             print('Conta inexistente!')
@@ -129,7 +119,9 @@ def menu(credencial_encontrada): #Aqui iremos trabalhar apenas com os valores da
       1 - Saque
       2 - Depósito
       E - Extrato
-      M - Ver Saldo''')
+      M - Ver Saldo
+      S - Sair
+      ''')
     while True:            
         entrada = input('=>') 
         if entrada.isdigit():
@@ -138,8 +130,6 @@ def menu(credencial_encontrada): #Aqui iremos trabalhar apenas com os valores da
         else:
             op_menu = str(entrada.upper())
             break
-    #if op_menu ==1:
-     #   return
     if op_menu ==2:
         try:
             entrada = int(input('Digite o valor para depósito'))
@@ -150,40 +140,36 @@ def menu(credencial_encontrada): #Aqui iremos trabalhar apenas com os valores da
         except ValueError:
              print('Somente números, por favor!')
     elif op_menu =='E':
-        print("Opção escolhida:", op_menu)  # Verifica o valor de entrada
-        print("Lista extrato:", conta_logada[3])
-        try:
-            if conta_logada[3][-1][3]:
-                valor_atualizado= conta_logada[3][-1][3] 
-                msg = demonstrativo(valor_atualizado, extrato=conta_logada[3])
-                print(msg)
-        except IndexError:
-            valor_atualizado=0
-            operacao_realizada = conta_logada
+        if conta_logada[3]:
+            valor_atualizado = conta_logada[3][-1][3] #Aqui pegamos o último valor do extrato, que é o saldo atualizado.
+            mensagem = demonstrativo(valor_atualizado, extrato=conta_logada[3])
+            print("\n".join(mensagem))
+            return 
+        else:
             print('Não há extrato')
-            return indice, operacao_realizada, valor_atualizado
-            #return indice, operacao_realizada, valor_atualizado
+            return
     elif op_menu =='M':
-        if conta_logada[3][-1]:
-            valor_atualizado = conta_logada[3][-1]
+        if conta_logada[3]:
+            valor_atualizado = conta_logada[3][-1][3]
             print(f'Você possui: R$ {valor_atualizado:.2f}')
         else:
             valor_atualizado = 0
             print(f'Não há dinheiro na conta.')
+    elif op_menu == 'S':
+        return
     else:
         print('Opção inexistente')
-    operacao_realizada = conta_logada
-    return indice, operacao_realizada, valor_atualizado
+    return menu(credencial_encontrada)
 
 
 def demonstrativo(saldo, /, extrato):
     i = 0
-    msg = ""
-    for op, valor, data in extrato: #iterando sob as tuplas dentro de extrato
+    msg = []
+    for op, valor, data, _ in extrato: #iterando sob as tuplas dentro de extrato
         #"Operação de +R$:{VALOR}. Dia {Data e hora}"
-        msg += f'\n{op}{valor:.2f}. Dia {data}'   #CORRIGIR RETORNO APARECENDO LISTA TODA.
+        msg.append(f'{op}{valor:.2f}. Dia {data}')   #CORRIGIR RETORNO APARECENDO LISTA TODA.
         i += 1
-    msg = f'\nSaldo final: {saldo}\n Um total de {i} operações'    
+    msg.append(f'Saldo final: {saldo}\nUm total de {i} operações')    
     return msg
 
 def deposito(deposito, extrato):
@@ -202,13 +188,6 @@ def deposito(deposito, extrato):
         att_extrato = (operacao, deposito, agora, saldo) #enviaremos extrato como tupla para a lista de contas
         extrato.append(att_extrato)
         return saldo, extrato
-
-
-#def deposito(saldo, valor, extrato):
-
-
-#def extrato(saldo,/,extrato):
-
 
 conta = []
 user = [{'nome': 'nome', 'Nascimento': 'data', 'cpf': 'cpf', 'endereco': 'endereço', 'contas':conta,}] #Nosso registro de usuários alimentado pela def registro_user
@@ -237,8 +216,6 @@ while True:
                 user.append(registro_user(credencial))  #A var retornada por registro_user é utilizada para preencher o responsável por manter o registro dos usuários.
         else:
             print('Apenas números, por favor.')
-        #print(user[0]) Como usamos .append não sobrescrevemos o primeiro valor. 
-        #print(user[1]) A partir daqui será incrementado os novos registros.
         print(user)
     else:
         print('Opção inválida')
